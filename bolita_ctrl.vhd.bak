@@ -1,0 +1,257 @@
+--***********************************************************--
+--DEFINICIÓN DE LAS LIBRERÍAS 
+--***********************************************************--
+Library IEEE;
+USE ieee.std_logic_1164.all;
+USE IEEE.NUMERIC_STD.ALL;
+--***********************************************************--
+--DEFINICION DEl ENTITY = ENTRADAS Y SALIDAS
+--***********************************************************--
+ENTITY bolita_ctrl IS
+	GENERIC	(	N				:	INTEGER	:= 3);
+	PORT(		
+		clk 					: IN STD_LOGIC;
+		rst					: IN STD_LOGIC;
+		Hbp					: IN STD_LOGIC;--Back porch H
+		Ha						: IN STD_LOGIC;--Back porch H
+		Hfp					: IN STD_LOGIC;--Back porch H
+		Hs						: IN STD_LOGIC;--Back porch H
+		Hmax					: IN STD_LOGIC;
+		Hcount				: IN STD_LOGIC_VECTOR (N+6 DOWNTO 0);
+		PXcount				: IN STD_LOGIC_VECTOR (N+6 DOWNTO 0);
+		PYcount				: IN STD_LOGIC_VECTOR (N+5 DOWNTO 0);
+		Vbp					: IN STD_LOGIC;--Back porch H
+		Va						: IN STD_LOGIC;--Back porch H
+		Vfp					: IN STD_LOGIC;--Back porch H
+		Vs						: IN STD_LOGIC;--Back porch H
+		Vmax					: IN STD_LOGIC;
+		e_Hcounter			: OUT STD_LOGIC;
+		e_Vcounter			: OUT STD_LOGIC;
+		e_PXcounter			: OUT STD_LOGIC;
+		e_PYcounter			: OUT STD_LOGIC;
+		sclr_Hcounter		: OUT STD_LOGIC;
+		sclrVcounter		: OUT STD_LOGIC;
+		sclrPXcounter		: OUT STD_LOGIC;
+		sclrPYcounter		: OUT STD_LOGIC;
+		rd_R					: OUT STD_LOGIC;
+		rd_G					: OUT STD_LOGIC;
+		rd_B					: OUT STD_LOGIC;
+		wr_R					: OUT STD_LOGIC;
+		wr_G					: OUT STD_LOGIC;
+		wr_B					: OUT STD_LOGIC;
+		led					: OUT STD_LOGIC_VECTOR (N+6 DOWNTO 0);
+		pos_mem				: OUT STD_LOGIC_VECTOR (N+6 DOWNTO 0)
+);
+END ENTITY bolita_ctrl;
+
+ARCHITECTURE functional OF bolita_ctrl IS
+
+	TYPE state IS (s0, s1 , s2, s3, s4, s5, s6);
+	SIGNAL estado_actual, siguiente_estado : state;
+	SIGNAL pos_actual, pos_next : STD_LOGIC_VECTOR (N+6 DOWNTO 0);
+--***********************************************************--
+--DECLARACION LOGICA							   						 --
+--***********************************************************--
+
+BEGIN
+pos_mem<=pos_actual;
+Sequencial:PROCESS (rst, clk)
+	BEGIN 
+	
+		IF (rst = '1') THEN
+			
+			estado_actual	<= s0;
+			pos_actual		<= "0000000000";
+		ELSIF (rising_edge(clk)) THEN
+		
+			estado_actual	<= siguiente_estado;
+			pos_actual		<= pos_next;
+		END IF;
+		
+	END PROCESS Sequencial;
+	
+	
+Combinacional:PROCESS (estado_actual, Hbp, Ha, Hfp, Hs, Hmax, Hcount, PXcount, PYcount, Vbp, Va, Vfp, Vs, Vmax, pos_actual)
+BEGIN
+	CASE estado_actual IS
+		WHEN s0	=>
+			e_Hcounter		<='0';	
+			e_Vcounter		<='0';
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';
+			sclr_Hcounter	<='1';	
+			sclrVcounter	<='1';
+			sclrPXcounter	<='1';
+			sclrPYcounter	<='1';
+			rd_R				<='0';	
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			pos_next				<= pos_actual;
+			siguiente_estado	<= s1;
+			led	<= "0000000000";	
+		
+		WHEN s1 	=>		 
+			e_Hcounter		<='0';	
+			e_Vcounter		<='1';
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';	
+			sclr_Hcounter	<='0';	
+			sclrVcounter	<='0';
+			sclrPXcounter	<='0';
+			sclrPYcounter	<='0';	
+			rd_R				<='0';	
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			pos_next				<= pos_actual;
+			led	<= "0000000001";	
+			IF (Vs = '1') THEN
+				siguiente_estado <= s2;	
+			ELSIF (Vs = '0') THEN
+				siguiente_estado <= s1;	
+			END IF;
+			
+		WHEN s2 	=>		 
+			e_Hcounter		<='0';	
+			e_Vcounter		<='1';
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';	
+			sclr_Hcounter	<='0';	
+			sclrVcounter	<='0';
+			sclrPXcounter	<='0';
+			sclrPYcounter	<='0';	
+			rd_R				<='0';	
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			pos_next				<= pos_actual;
+			led	<= "1000000001";	
+			IF (Vbp = '1') THEN
+				siguiente_estado <= s2;	
+			ELSIF (Vbp = '0') THEN
+				siguiente_estado <= s3;	
+			END IF;
+			
+		WHEN s3  =>
+			
+			e_Hcounter		<='1';	
+			e_Vcounter		<='0';
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';
+			sclr_Hcounter	<='0';	
+			sclrVcounter	<='0';
+			sclrPXcounter	<='0';
+			sclrPYcounter	<='0';
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			pos_next <= pos_actual;
+			led	<= "0100000011";	
+			IF (Hs = '0') THEN
+					siguiente_estado <= s3;	
+			ELSIF (Hs = '1') THEN
+					siguiente_estado <= s4;		
+			END IF;
+		
+		WHEN s4  =>
+			
+			e_Hcounter		<='1';	
+			e_Vcounter		<='0';
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';
+			sclr_Hcounter	<='0';	
+			sclrVcounter	<='0';
+			sclrPXcounter	<='0';
+			sclrPYcounter	<='0';
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			pos_next <= pos_actual;
+			led	<= "0100000011";	
+			IF (Hbp = '1') THEN
+					siguiente_estado <= s4;	
+			ELSIF (Hbp = '0') THEN
+					siguiente_estado <= s5;		
+			END IF;
+		
+		WHEN s5  =>
+			
+			e_Hcounter		<='1';	
+			e_Vcounter		<='0';
+			e_PXcounter		<='0';
+			sclr_Hcounter	<='0';	
+			sclrVcounter	<='0';
+			sclrPXcounter	<='0';
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			led	<= "1000000111";	
+			IF (Hmax = '0') THEN
+				IF (Ha = '1') THEN
+					e_Pxcounter		<='1';
+					sclrPXcounter	<='0';
+					rd_R				<='1';
+					pos_next <= PXcount;
+					siguiente_estado <= s5;	
+				ELSIF (Ha = '0') THEN
+					e_PXcounter		<='0';
+					sclrPXcounter	<='1';
+					rd_R				<='0';
+					pos_next <= pos_actual;
+					siguiente_estado <= s5;		
+				END IF;
+			ELSIF (Hmax = '1') THEN
+				siguiente_estado <= s6;	
+			END IF;
+			
+		WHEN s6  =>
+				
+			e_Hcounter		<='0';	
+			e_Vcounter		<='1';
+			e_PXcounter		<='0';
+			sclr_Hcounter	<='0';	
+			sclrVcounter	<='0';
+			sclrPXcounter	<='0';
+			rd_R				<='0';	
+			rd_G				<='0';	
+			rd_B				<='0';	
+			wr_R				<='0';	
+			wr_G				<='0';	
+			wr_B				<='0';
+			pos_next			<= pos_actual;
+			led	<= "0011111111";	
+			IF (Vmax = '0') THEN
+				IF (Va = '1') THEN
+--					pos_next <= PYcount;
+--					e_PYcounter		<='1';
+--					sclrPYcounter	<='0';
+					siguiente_estado <= s3;	
+				ELSIF (Va = '0') THEN
+--					pos_next <= pos_actual;
+--					e_PYcounter		<='0';
+--					sclrPYcounter	<='1';
+					siguiente_estado <= s6;	
+				END IF;
+			ELSIF (Vmax = '1') THEN
+				siguiente_estado <= s0;	
+			END IF;
+		
+
+		END CASE;
+		
+	END PROCESS Combinacional;
+
+END ARCHITECTURE functional;	

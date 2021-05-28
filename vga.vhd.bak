@@ -1,0 +1,175 @@
+--***********************************************************--
+--        	PONTIFICIA UNIVERSIDAD JAVERIANA	             	 --
+--        		DISEÑO EN FPGA						                --
+--                   													 --
+-- Nombres: Santiago Burgos									       --
+-- Título: 												 --
+-- Fecha: 16/02/2021                 								 --
+--                                                           --
+--***********************************************************--
+
+--Este bloque se encarga de realizar la comparacion entre dos numeros binarios
+
+--***********************************************************--
+--DEFINICIÓN DE LAS LIBRERÍAS 
+--***********************************************************--
+Library IEEE;
+USE ieee.std_logic_1164.all;
+USE IEEE.NUMERIC_STD.ALL;
+--***********************************************************--
+--DEFINICION DEl ENTITY = ENTRADAS Y SALIDAS
+--***********************************************************--
+ENTITY vga IS
+	GENERIC	(	B				:	INTEGER	:= 4);
+	PORT(		
+		clk								: IN STD_LOGIC;
+--		clk25								: IN STD_LOGIC;--para usar en modelsim sin pll
+		rst								: IN STD_LOGIC;
+		colorR, colorG, colorB		: OUT STD_LOGIC_VECTOR(B-1 DOWNTO 0);
+		eHcounter_t, eVcounter_t, ePXcounter_t	: OUT STD_LOGIC;
+		rdR_t												: OUT STD_LOGIC;
+		Hbp_t, Ha_t, Hfp_t, Hs_t, Hm_t, PXm_t	: OUT STD_LOGIC;
+		Vbp_t, Va_t, Vfp_t, Vs_t, Vm_t			: OUT STD_LOGIC;
+		clk25_t, pll_ok_t								: OUT STD_LOGIC;
+		addr_mem_t										: OUT STD_LOGIC_VECTOR(B+5 DOWNTO 0);
+		Hc_t,PXcount_t									: OUT STD_LOGIC_VECTOR(B+5 DOWNTO 0)
+);
+END ENTITY vga;
+
+ARCHITECTURE functional OF vga IS
+	
+	SIGNAL eHcounter_s, eVcounter_s, ePXcounter_s				: STD_LOGIC;
+	SIGNAL sclrHcounter_s, sclrVcounter_s, sclrPXcounter_s	: STD_LOGIC;
+	SIGNAL Hbp_s, Ha_s, Hfp_s, Hs_s, Hm_s,PXm_s					: STD_LOGIC;
+	SIGNAL Vbp_s, Va_s, Vfp_s, Vs_s,	Vm_s							: STD_LOGIC;
+	SIGNAL clk25, pll_ok													: STD_LOGIC;
+	SIGNAL rdR_s, rdG_s, rdB_s											: STD_LOGIC;
+	SIGNAL wrR_s, wrG_s, wrB_s											: STD_LOGIC;
+	SIGNAL Hc_s,PXcount_s												: STD_LOGIC_VECTOR(B+5 DOWNTO 0);
+	SIGNAL addr_mem														: STD_LOGIC_VECTOR(B+5 DOWNTO 0);
+	SIGNAL datain_mem														: STD_LOGIC_VECTOR(B-1 DOWNTO 0);
+	SIGNAL colorP															: STD_LOGIC_VECTOR(B-1 DOWNTO 0);
+--***********************************************************--
+--DECLARACION LOGICA							   						 --
+--***********************************************************--
+
+BEGIN
+--addr_mem<=Hc_s;	-- Para maquina malla inicial
+--addr_mem<=PXcount_s;-- para maquina malla interna
+colorR<=colorP;
+colorG<=colorP;
+colorB<=colorP;
+-- ASIGNACION TEST BENCH--
+eHcounter_t	<=eHcounter_s;
+eVcounter_t	<=eVcounter_s;
+ePXcounter_t<=ePXcounter_s;
+rdR_t			<=rdR_s;
+Hbp_t			<=Hbp_s;
+Ha_t			<=Ha_s;
+Hfp_t			<=Hfp_s;
+Hs_t			<=Hs_s;
+Hm_t			<=Hm_s;
+PXm_t 		<=PXm_s;
+Vbp_t			<=Vbp_s;
+Va_t			<=Va_s;
+Vfp_t			<=Vfp_s;
+Vs_t			<=Vs_s;
+Vm_t			<=Vm_s;
+clk25_t		<=clk25;
+pll_ok_t		<=pll_ok;				
+addr_mem_t	<=addr_mem;									
+Hc_t			<=Hc_s;
+PXcount_t	<=PXcount_s;
+
+-----------------------------------------------
+--*********************************
+Control_VGA: ENTITY work.vga_ctrl
+	PORT 	MAP(	
+		clk 				=> clk,
+		rst				=> rst,	
+		Hbp				=> Hbp_s,
+		Ha					=> Ha_s,
+		Hfp				=> Hfp_s,
+		Hs					=> Hs_s,
+		Hmax				=> Hm_s,
+		Hcount			=> Hc_s,
+		PXcount			=> PXcount_s,
+		Vbp				=> Vbp_s,
+		Va					=> Va_s,
+		Vfp				=> Vfp_s,
+		Vs					=> Vs_s,
+		Vmax				=> Vm_s,
+		e_Hcounter		=> eHcounter_s,
+		e_Vcounter		=> eVcounter_s,
+		e_PXcounter		=> ePXcounter_s,
+		sclr_Hcounter	=> sclrHcounter_s,
+		sclrVcounter	=> sclrVcounter_s,
+		sclrPXcounter	=> sclrPXcounter_s,
+		rd_R				=> rdR_s,
+		rd_G				=> rdG_s,
+		rd_B				=> rdB_s,
+		wr_R				=> wrR_s,
+		wr_G				=> wrG_s,
+		wr_B				=> wrB_s,
+		pos_mem			=> addr_mem
+	);
+	
+Clock_25: ENTITY work.pll25
+	PORT 	MAP(	
+		areset		=> rst,	
+		inclk0		=> clk,	
+		c0				=> clk25,	
+		locked		=> pll_ok			
+	);
+--		
+ContadorHorizontal: ENTITY work.H_counter
+	PORT MAP(	
+		
+		clk			=> clk25,		 	--IN
+		rst			=> rst,  		 	--IN
+		ena			=> eHcounter_s,	--IN
+		syn_clr		=> sclrHcounter_s,--IN
+		HB_porch		=> Hbp_s,		 	--OUT
+		H_activo 	=> Ha_s,		 		--OUT
+		HF_porch 	=> Hfp_s,			--OUT
+		H_sync		=> Hs_s,				--OUT
+		H_max			=> Hm_s,				--OUT
+		counter		=>	Hc_s				--OUT 	9 to 0
+				);
+				
+ContadorVertical: ENTITY work.V_counter
+	PORT MAP(	
+		
+		clk			=> clk25,			--IN
+		rst			=> rst,				--IN
+		ena			=> eVcounter_s,	--IN
+		syn_clr		=> sclrVcounter_s,--IN
+		VB_porch		=> Vbp_s,			--OUT
+		V_activo 	=> Va_s,				--OUT
+		VF_porch 	=> Vfp_s,			--OUT
+		V_sync		=> Vs_s,				--OUT
+		V_max			=> Vm_s				--OUT
+				);
+				
+ContadorPixelX: ENTITY work.PixelX_counter
+	PORT MAP(	
+		
+		clk			=> clk25,				--IN
+		rst			=> rst,					--IN
+		ena			=> ePXcounter_s,		--IN
+		syn_clr		=> sclrPXcounter_s,	--IN
+--		X_max			=> PXm_s,				--OUT
+		counter		=>	PXcount_s			--OUT 9 TO 0
+				);
+				
+Mem_RED: ENTITY work.redm
+	PORT 	MAP(	
+		address		=> addr_mem,		--IN 	9 to 0
+		clock			=> clk,				--IN
+		data			=> datain_mem,		--IN	3 to 0
+		rden			=> rdR_s,			--IN
+		wren			=> wrR_s,			--IN
+		q				=> colorP			--OUT
+	);
+
+END ARCHITECTURE functional;

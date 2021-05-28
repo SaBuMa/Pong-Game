@@ -1,0 +1,152 @@
+--***********************************************************--
+--DEFINICIÓN DE LAS LIBRERÍAS 
+--***********************************************************--
+Library IEEE;
+USE ieee.std_logic_1164.all;
+USE IEEE.NUMERIC_STD.ALL;
+--***********************************************************--
+--DEFINICION DEl ENTITY = ENTRADAS Y SALIDAS
+--***********************************************************--
+ENTITY paleta_J1_ctrl IS
+	GENERIC	(	N				:	INTEGER	:= 3);
+	PORT(		
+		clk 					: IN STD_LOGIC;
+		rst					: IN STD_LOGIC;
+		V_on					: IN STD_LOGIC;--Back porch H
+		PX_max				: IN STD_LOGIC;--Back porch H
+		PY_max				: IN STD_LOGIC;--Back porch H
+		Vel_max				: IN STD_LOGIC;--Back porch H
+		e_juego				: IN STD_LOGIC;
+		PXcount				: IN UNSIGNED(N+6 DOWNTO 0);--Back porch H
+		PYcount				: IN UNSIGNED(N+6 DOWNTO 0);
+		e_PXcounter			: OUT STD_LOGIC;
+		e_PYcounter			: OUT STD_LOGIC;
+		e_Velcounter		: OUT STD_LOGIC;
+		sclr_Hcounter		: OUT STD_LOGIC;
+		sclrPXcounter		: OUT STD_LOGIC;
+		sclrPYcounter		: OUT STD_LOGIC;
+		sclrVelcounter		: OUT STD_LOGIC;
+		posbolitax			: OUT UNSIGNED(N+6 DOWNTO 0);
+		posbolitay			: OUT UNSIGNED(N+6 DOWNTO 0)
+		
+);
+END ENTITY paleta_J1_ctrl;
+
+ARCHITECTURE functional OF paleta_J1_ctrl IS
+
+	TYPE state IS (s0, s1 , s2, s3);
+	SIGNAL estado_actual, siguiente_estado : state;
+	SIGNAL posx_actual, posx_next : UNSIGNED (N+6 DOWNTO 0);
+	SIGNAL posy_actual, posy_next : UNSIGNED (N+6 DOWNTO 0);
+--***********************************************************--
+--DECLARACION LOGICA							   						 --
+--***********************************************************--
+
+BEGIN
+posbolitax <= posx_actual;
+posbolitay <= posy_actual;
+
+Sequencial:PROCESS (rst, clk)
+	BEGIN 
+	
+		IF (rst = '1') THEN
+			
+			estado_actual	<= s0;
+			posx_actual		<= "0000000000";
+			posy_actual		<= "0000000000";
+		ELSIF (rising_edge(clk)) THEN
+			posx_actual		<= posx_next;
+			posy_actual		<= posy_next;
+			estado_actual	<= siguiente_estado;
+		END IF;
+		
+	END PROCESS Sequencial;
+	
+Combinacional:PROCESS (estado_actual, V_on, PX_max, PY_max, Vel_max, e_juego)
+
+BEGIN
+	CASE estado_actual IS
+		
+		WHEN s0	=>
+
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';
+			e_Velcounter	<='0';
+			sclrPXcounter	<='1';
+			sclrPYcounter	<='1';
+			sclrVelcounter	<='1';
+			posx_next			<= posx_actual;
+			posy_next			<= posy_actual;
+			IF (e_juego='0') THEN
+				siguiente_estado	<= s0;
+			ELSIF (e_juego='1') THEN
+				siguiente_estado	<= s1;
+			END IF;	
+		
+		WHEN s1 	=>		 
+			e_PXcounter		<='0';
+			e_PYcounter		<='0';
+			e_Velcounter	<='1';
+			sclrPXcounter	<='0';
+			sclrPYcounter	<='0';
+			sclrVelcounter	<='0';
+			posx_next			<= posx_actual;
+			posy_next			<= posy_actual;	
+--			IF(V_on='1')THEN
+				IF (Vel_max = '1') THEN
+					siguiente_estado <= s2;	
+				ELSIF (Vel_max = '0') THEN
+					siguiente_estado <= s1;	
+				END IF;
+--			ELSE
+--				siguiente_estado <= s0;	
+--			END IF;
+			
+		WHEN s2 	=>		 
+			e_PXcounter		<='1';
+			e_PYcounter		<='0';
+			e_Velcounter	<='0';
+			sclrPXcounter	<='0';
+			sclrPYcounter	<='0';
+			sclrVelcounter	<='0';	
+--			IF(V_on='1')THEN
+				IF (PX_max = '1') THEN
+					posx_next			<= posx_actual;
+					posy_next			<= posy_actual;
+					siguiente_estado <= s3;	
+				ELSIF (PX_max = '0') THEN
+					posx_next			<= PXcount;
+					posy_next			<= posy_actual;
+					siguiente_estado <= s1;	
+				END IF;
+--			ELSE
+--				siguiente_estado <= s0;	
+--			END IF;
+			
+		WHEN s3  =>
+			
+			e_PXcounter		<='0';
+			e_PYcounter		<='1';
+			e_Velcounter	<='0';
+			sclrPXcounter	<='1';
+			sclrPYcounter	<='0';
+			sclrVelcounter	<='0';
+--			IF(V_on='1')THEN	
+				IF (PY_max = '1') THEN
+					posx_next			<= posx_actual;
+					posy_next			<= posy_actual;
+					siguiente_estado <= s0;	
+				ELSIF (PY_max = '0') THEN
+					posx_next			<= posx_actual;
+					posy_next			<= Pycount;
+					siguiente_estado <= s1;	
+				END IF;
+--			ELSE
+--				siguiente_estado <= s0;	
+--			END IF;
+		
+		END CASE;
+		
+	END PROCESS Combinacional;
+
+END ARCHITECTURE functional;	
