@@ -1,2 +1,2 @@
 # Pong-Game
-This is the game Pong created in VHDL, using de altera DE0 board
+This is the game Pong created in VHDL, using the altera DE0 board
